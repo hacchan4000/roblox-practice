@@ -16,7 +16,7 @@ local Roact = require(ReplicatedStorage.Packages.Roact)
 local RoduxHooks = require(ReplicatedStorage.Packages.Roduxhooks)
 
 -- ✅ FIXED: No more .Client in these paths
-local Store = require(StarterPlayer.StarterPlayerScripts.Rodux.Store)
+local Store = require(ReplicatedStorage.Shared.Rodux.Store)
 
 -- Touch device screen orientation
 if UserInputService.TouchEnabled then

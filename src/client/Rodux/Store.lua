@@ -1,10 +1,9 @@
 -- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterPlayer = game:GetService("StarterPlayer")
 
 -- Directories
-local Reducers = StarterPlayer.StarterPlayerScripts.Client.Rodux.Reducers
-local TemplateReducer =require(Reducers.TemplateReducer)
+local Reducers = ReplicatedStorage.Rodux.Reducers
+local TemplateReducer = require(Reducers.TemplateReducer)
 
 -- Modules
 local Rodux = require(ReplicatedStorage.Packages.Rodux)
@@ -15,6 +14,7 @@ local StoreReducer = Rodux.combineReducers({
 })
 
 local Store = Rodux.Store.new(StoreReducer, nil, {
+	-- middleware can go here if needed
 })
 
 return Store

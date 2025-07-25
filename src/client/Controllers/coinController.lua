@@ -1,8 +1,8 @@
 -- src/Client/Controllers/CoinController.lua
 
 -- Knit setup
-local Players = game:GetService("Players") -- ambil service Players dr game
-local Workspace = game:GetService("Workspace") -- ambil service Workspace dr game
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -77,12 +77,12 @@ local function spawnCoin(template, areaPart)
 
 	local newCoin = template:Clone()
 
-	if not workspace:FindFirstChild("Coin") then
-		warn("🚫 Folder 'Coin' not found in Workspace!")
+	if not workspace:FindFirstChild("Coins") then
+		warn("🚫 Folder 'Coins' not found in Workspace!")
 		return
 	end
 
-	newCoin.Parent = workspace:FindFirstChild("Coin")
+	newCoin.Parent = workspace:FindFirstChild("Coins")
 
 	if not newCoin:IsA("BasePart") and not newCoin:IsA("Model") then
 		warn("🚫 Cloned coin is not a valid Part or Model")
@@ -119,23 +119,25 @@ function CoinController:KnitStart()
 		warn("⚠️ CoinSpawns folder not found in Workspace")
 		return
 	end
-
-	local spawnArea = spawnAreaFolder:GetChildren()
-	if #spawnArea == 0 then
-		warn("⚠️ No spawn area found inside CoinSpawns")
+	
+	local spawnAreas = spawnAreaFolder:GetChildren()
+	if #spawnAreas == 0 then
+		warn("⚠️ No spawn areas found inside CoinSpawns")
 		return
 	end
-
+	
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			for _, areaSpawn in ipairs(spawnArea) do
+			for _, areaSpawn in ipairs(spawnAreas) do
 				print("🪙 Spawning coin at", areaSpawn.Name)
 				spawnCoin(coinTemplate, areaSpawn)
 			end
 		end
 	end)
+	
 end
+
 print("📦 CoinController loaded by Knit")
 
 return CoinController

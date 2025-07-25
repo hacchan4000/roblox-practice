@@ -1,10 +1,12 @@
 -- src/Client/Controllers/CoinController.lua
 
 -- Knit setup
-local Players = game:GetService("Players") -- ngambil elemen service player
-local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players") -- ambil service Players dr game
+local Workspace = game:GetService("Workspace") -- ambil service Workspace dr game
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local coinTemplate = ReplicatedStorage:WaitForChild("Coin")
 
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Knit = require(Packages.Knit)
@@ -14,11 +16,11 @@ local CoinController = Knit.CreateController({
 })
 
 -- Play coin sound
-local function playSound(coinMesh)
-	local sound = coinMesh:FindFirstChild("CoinSound")
+local function playSound(coin)
+	local sound = coin:FindFirstChild("CoinSound")
 	if sound then
 		local clone = sound:Clone()
-		clone.Parent = workspace
+		clone.Parent = Workspace
 		clone:Play()
 
 		clone.Ended:Connect(function()
@@ -27,71 +29,113 @@ local function playSound(coinMesh)
 	end
 end
 
--- When player touches the coin
-local function collectCoin(coinMesh)
-	coinMesh.Touched:Connect(function(hit)
-		if hit.Parent:FindFirstChild("Humanoid") then
-			local player = Players:GetPlayerFromCharacter(hit.Parent)
+-- Handle coin collection
+local function collectCoin(coin)
+	coin.Touched:Connect(function(hit)
+		local character = hit.Parent
+		if character and character:FindFirstChild("Humanoid") then
+			local player = Players:GetPlayerFromCharacter(character)
 			if player and player:FindFirstChild("leaderstats") then
 				local coins = player.leaderstats:FindFirstChild("Coins")
-				local reward = coinMesh:FindFirstChild("Reward")
+				local reward = coin:FindFirstChild("Reward")
 
 				if coins and reward then
 					coins.Value += reward.Value
-					playSound(coinMesh)
-					coinMesh:Destroy()
+					playSound(coin)
+					coin:Destroy()
 				end
 			end
 		end
 	end)
 end
 
--- Spin animation
+-- Rotate coin using TweenService
 local function spinCoin(coin)
 	local tweenInfo = TweenInfo.new(
 		1,
 		Enum.EasingStyle.Linear,
 		Enum.EasingDirection.InOut,
-		-1, -- loop forever
-		false,
-		0
+		-1 -- loop forever
 	)
 
-	local properties = {
-		Orientation = Vector3.new(0, 360, 0)
+	local goal = {
+		Orientation = coin.Orientation + Vector3.new(0, 360, 0),
 	}
 
-	local spinTween = TweenService:Create(coin, tweenInfo, properties)
-	spinTween:Play()
+	local tween = TweenService:Create(coin, tweenInfo, goal)
+	tween:Play()
 end
 
--- Spawn coin in defined area
-local function spawnCoin(coinTemplate, areaSpawn)
-	local newCoin = coinTemplate:Clone()
-	newCoin.Parent = workspace:WaitForChild("Coin")
+-- Spawn a coin inside a spawn area
+local function spawnCoin(template, areaPart)
+	print("✅ Attempting to spawn coin at area:", areaPart.Name)
 
-	local spacing = 2.2
-	local randomPos = areaSpawn.Position + Vector3.new(
-		math.random(-areaSpawn.Size.X / spacing, areaSpawn.Size.X / spacing), 2,
-		math.random(-areaSpawn.Size.Z / spacing, areaSpawn.Size.Z / spacing)
-	)
+	if not template then
+		warn("🚫 Coin template is nil!")
+		return
+	end
 
-	newCoin.Position = randomPos
+	local newCoin = template:Clone()
+
+	if not workspace:FindFirstChild("Coin") then
+		warn("🚫 Folder 'Coin' not found in Workspace!")
+		return
+	end
+
+	newCoin.Parent = workspace:FindFirstChild("Coin")
+
+	if not newCoin:IsA("BasePart") and not newCoin:IsA("Model") then
+		warn("🚫 Cloned coin is not a valid Part or Model")
+		return
+	end
+
+	if newCoin:IsA("Model") and not newCoin.PrimaryPart then
+		warn("🚫 Cloned coin Model missing PrimaryPart")
+		return
+	end
+
+	local halfX = areaPart.Size.X / 2
+	local halfZ = areaPart.Size.Z / 2
+
+	local randomPos = areaPart.Position + Vector3.new(math.random(-halfX, halfX), 2, math.random(-halfZ, halfZ))
+
+	if newCoin:IsA("Model") then
+		newCoin:SetPrimaryPartCFrame(CFrame.new(randomPos))
+	else
+		newCoin.Position = randomPos
+	end
+
+	print("✅ Coin spawned successfully at:", randomPos)
 
 	spinCoin(newCoin)
 	collectCoin(newCoin)
 end
 
--- Called automatically when controller starts
 function CoinController:KnitStart()
-	local coinTemplate = script:WaitForChild("Coin") -- reference to the coin model/part
-	local spawnAreas = workspace:WaitForChild("coinSpawns"):GetChildren()
+	print("🔁 CoinController Starting...")
 
-	for _, areaSpawn in ipairs(spawnAreas) do
-		for i = 1, 20 do
-			spawnCoin(coinTemplate, areaSpawn)
-		end
+	local spawnAreaFolder = workspace:FindFirstChild("CoinSpawns")
+	if not spawnAreaFolder then
+		warn("⚠️ CoinSpawns folder not found in Workspace")
+		return
 	end
+
+	local spawnArea = spawnAreaFolder:GetChildren()
+	if #spawnArea == 0 then
+		warn("⚠️ No spawn area found inside CoinSpawns")
+		return
+	end
+
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, areaSpawn in ipairs(spawnArea) do
+				print("🪙 Spawning coin at", areaSpawn.Name)
+				spawnCoin(coinTemplate, areaSpawn)
+			end
+		end
+	end)
 end
+print("📦 CoinController loaded by Knit")
 
 return CoinController

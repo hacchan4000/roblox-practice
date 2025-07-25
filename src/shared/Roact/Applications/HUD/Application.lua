@@ -12,11 +12,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules
 local Knit = require(ReplicatedStorage.Packages.Knit)
+
 local Roact = require(ReplicatedStorage.Packages.Roact)
+
 local RoactHooks = require(ReplicatedStorage.Packages.Hooks)
 local roactSpring = require(ReplicatedStorage.Packages.RoactSpring)
 local RoduxHooks = require(ReplicatedStorage.Packages.Roduxhooks)
-
 
 -- Component
 local function HUD(_, hooks)
@@ -42,8 +43,7 @@ local function HUD(_, hooks)
 				ZIndex = 1,
 				Text = "",
 				LayoutOrder = 1,
-				[Roact.Event.MouseButton1Click] = function()
-				end,
+				[Roact.Event.MouseButton1Click] = function() end,
 			}),
 
 			UIListLayout = Roact.createElement("UIListLayout", {
@@ -57,7 +57,7 @@ local function HUD(_, hooks)
 				AspectRatio = 4.5,
 				AspectType = Enum.AspectType.FitWithinMaxSize,
 				DominantAxis = Enum.DominantAxis.Width,
-			})
+			}),
 		}),
 	})
 end

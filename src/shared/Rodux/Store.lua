@@ -2,7 +2,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Directories
-local Reducers = ReplicatedStorage.Rodux.Reducers
+local Reducers = ReplicatedStorage.Shared.Rodux.Reducers
+
 local TemplateReducer = require(Reducers.TemplateReducer)
 
 -- Modules

@@ -1,32 +1,67 @@
---[=[
-    Owner: Yokhaii
-	Version: 0.0.1
-    Contact owner if any question, concern or feedback
-]=]
-
--- Services
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- Variables
-
--- Modules
-local Knit = require(ReplicatedStorage.Packages.Knit)
-
 local Roact = require(ReplicatedStorage.Packages.Roact)
-
-local RoactHooks = require(ReplicatedStorage.Packages.Hooks)
-local roactSpring = require(ReplicatedStorage.Packages.RoactSpring)
-local RoduxHooks = require(ReplicatedStorage.Packages.Roduxhooks)
-
--- Component
 local function HUD(_, hooks)
+	local useState = hooks.useState
+
+	-- Get local player
+	local player = game:GetService("Players").LocalPlayer
+
+	-- Coin state
+	local coins, setCoins = useState(0)
+
+	-- Listen for coin updates
+	hooks.useEffect(function()
+		local leaderstats = player:FindFirstChild("leaderstats")
+		local coinValue
+
+		if not leaderstats then
+			local connection
+			connection = player.ChildAdded:Connect(function(child)
+				if child.Name == "leaderstats" then
+					leaderstats = child
+					connection:Disconnect()
+					coinValue = leaderstats:WaitForChild("Coins", 5)
+					if coinValue then
+						setCoins(coinValue.Value)
+						coinValue:GetPropertyChangedSignal("Value"):Connect(function()
+							setCoins(coinValue.Value)
+						end)
+					end
+				end
+			end)
+		else
+			coinValue = leaderstats:FindFirstChild("Coins")
+			if coinValue then
+				setCoins(coinValue.Value)
+				coinValue:GetPropertyChangedSignal("Value"):Connect(function()
+					setCoins(coinValue.Value)
+				end)
+			end
+		end
+
+		return function() end
+	end, {})
+
 	return Roact.createElement("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 	}, {
+		-- Top Coin Counter
+		CoinCounter = Roact.createElement("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0),
+			BackgroundTransparency = 1,
+			Position = UDim2.fromScale(0.5, 0.05),
+			Size = UDim2.fromScale(0.8, 0.1),
+			Text = "💰 Coins: " .. tostring(coins),
+			TextColor3 = Color3.fromRGB(255, 255, 0),
+			TextScaled = true,
+			Font = Enum.Font.GothamBold,
+			ZIndex = 1,
+		}),
+
+		-- Bottom Button (Optional)
 		BottomFrame = Roact.createElement("Frame", {
 			AnchorPoint = Vector2.new(0.5, 1),
 			BackgroundTransparency = 1,
@@ -41,9 +76,11 @@ local function HUD(_, hooks)
 				BackgroundTransparency = 0.5,
 				Size = UDim2.fromScale(0.18, 0.7),
 				ZIndex = 1,
-				Text = "",
+				Text = "Click",
 				LayoutOrder = 1,
-				[Roact.Event.MouseButton1Click] = function() end,
+				[Roact.Event.MouseButton1Click] = function()
+					print("Button clicked!")
+				end,
 			}),
 
 			UIListLayout = Roact.createElement("UIListLayout", {
@@ -53,6 +90,7 @@ local function HUD(_, hooks)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 			}),
+
 			UIAspectRatio = Roact.createElement("UIAspectRatioConstraint", {
 				AspectRatio = 4.5,
 				AspectType = Enum.AspectType.FitWithinMaxSize,
@@ -61,6 +99,6 @@ local function HUD(_, hooks)
 		}),
 	})
 end
-HUD = RoactHooks.new(Roact)(HUD)
 
+HUD = RoactHooks.new(Roact)(HUD)
 return HUD

@@ -9,7 +9,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local coinTemplate = ReplicatedStorage:WaitForChild("Coin")
 
 local Packages = ReplicatedStorage:WaitForChild("Packages")
-local Knit = require(Packages.Knit)
+local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
+local CoinService = Knit.GetService("CoinService")
 
 local CoinController = Knit.CreateController({
 	Name = "CoinController",
@@ -31,23 +32,28 @@ end
 
 -- Handle coin collection
 local function collectCoin(coin)
-	coin.Touched:Connect(function(hit)
+	local touchPart = coin:IsA("Model") and coin.PrimaryPart or coin
+	touchPart.Touched:Connect(function(hit)
 		local character = hit.Parent
 		if character and character:FindFirstChild("Humanoid") then
 			local player = Players:GetPlayerFromCharacter(character)
 			if player and player:FindFirstChild("leaderstats") then
-				local coins = player.leaderstats:FindFirstChild("Coins")
+				print("✅ Coin collected by player:", player.Name)
 				local reward = coin:FindFirstChild("Reward")
-
-				if coins and reward then
-					coins.Value += reward.Value
+				
+				if reward then
+					CoinService:AddCoins(reward.Value)
 					playSound(coin)
+					print("✅ Collected coin worth", reward.Value)
 					coin:Destroy()
+					
 				end
+				
 			end
 		end
 	end)
 end
+
 
 -- Rotate coin using TweenService
 local function spinCoin(coin)
@@ -94,10 +100,17 @@ local function spawnCoin(template, areaPart)
 		return
 	end
 
-	local halfX = areaPart.Size.X / 2
-	local halfZ = areaPart.Size.Z / 2
+	local basePart = areaPart:FindFirstChildWhichIsA("BasePart")
 
-	local randomPos = areaPart.Position + Vector3.new(math.random(-halfX, halfX), 2, math.random(-halfZ, halfZ))
+	if not basePart then
+		warn("🚫 No BasePart found inside spawn area model:", areaPart.Name)
+		return
+	end
+
+	local halfX = basePart.Size.X / 2
+	local halfZ = basePart.Size.Z / 2
+
+	local randomPos = basePart.Position + Vector3.new(math.random(-halfX, halfX), 2, math.random(-halfZ, halfZ))
 
 	if newCoin:IsA("Model") then
 		newCoin:SetPrimaryPartCFrame(CFrame.new(randomPos))
@@ -119,23 +132,23 @@ function CoinController:KnitStart()
 		warn("⚠️ CoinSpawns folder not found in Workspace")
 		return
 	end
-	
+
 	local spawnAreas = spawnAreaFolder:GetChildren()
 	if #spawnAreas == 0 then
 		warn("⚠️ No spawn areas found inside CoinSpawns")
 		return
 	end
-	
+
 	task.spawn(function()
-		while true do
-			task.wait(1)
+		for i = 0, 21, 1 do
+			task.wait(2)
 			for _, areaSpawn in ipairs(spawnAreas) do
 				print("🪙 Spawning coin at", areaSpawn.Name)
 				spawnCoin(coinTemplate, areaSpawn)
 			end
 		end
+		print("✅ Finished spawning coins")
 	end)
-	
 end
 
 print("📦 CoinController loaded by Knit")

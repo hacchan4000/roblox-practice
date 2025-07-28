@@ -1,5 +1,23 @@
+--file ini untuk menampilkan HUD (Heads-Up Display) di game Roblox
+--Ini menggunakan Roact untuk membuat antarmuka pengguna yang responsif
+-- disini tempat Frame utama dan elemen UI lainnya didefinisikan 
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Roact = require(ReplicatedStorage.Packages.Roact)
+local CoinReducer = require(ReplicatedStorage.Shared.Rodux.Reducers.CoinReducer)
+
+local styles, api = roactSpring.useSpring(hooks, function()
+		return {
+			nbToDisplay = CoinReducer.Coins,
+		}
+	end)
+
+hooks.useEffect(function()
+		api.start({
+			nbToDisplay = CoinReducer.Coins,
+		})
+	end, { CoinReducer.Coins })
+	
 local function HUD(_, hooks)
 	local useState = hooks.useState
 
@@ -48,13 +66,17 @@ local function HUD(_, hooks)
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 	}, {
+		
 		-- Top Coin Counter
 		CoinCounter = Roact.createElement("TextLabel", {
+			
 			AnchorPoint = Vector2.new(0.5, 0),
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0.5, 0.05),
 			Size = UDim2.fromScale(0.8, 0.1),
-			Text = "💰 Coins: " .. tostring(coins),
+			Text = styles.nbToDisplay:map(function(nbToDisplay)
+								return math.floor(nbToDisplay)
+							end),
 			TextColor3 = Color3.fromRGB(255, 255, 0),
 			TextScaled = true,
 			Font = Enum.Font.GothamBold,
@@ -99,6 +121,8 @@ local function HUD(_, hooks)
 		}),
 	})
 end
+
+
 
 HUD = RoactHooks.new(Roact)(HUD)
 return HUD

@@ -27,6 +27,11 @@ function CoinService:GetCoins(player)
 	return playerCoins[player] or 0
 end
 
+-- Knit Signal to notify clients of coin updates
+function CoinService:CoinsUpdated(player)
+    
+end
+
 -- KnitStart: Setup player listeners
 function CoinService:KnitStart()
 	print("🟢 CoinService started")

@@ -127,6 +127,10 @@ end
 function CoinController:KnitStart()
 	print("🔁 CoinController Starting...")
 
+	CoinService.CoinsUpdated:Connect(function(amount) 
+			print(amount)
+	end)
+
 	local spawnAreaFolder = workspace:FindFirstChild("CoinSpawns")
 	if not spawnAreaFolder then
 		warn("⚠️ CoinSpawns folder not found in Workspace")

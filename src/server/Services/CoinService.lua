@@ -4,8 +4,8 @@ local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
 
 -- Knit Service
 local CoinService = Knit.CreateService({
-	Name = "CoinService",
-	Client = {},
+	Name = "CoinService", --nama dari service ini yang akan digunakan di server dan client
+	Client = {}, --tabel yang berisi fungsi yang dapat diakses oleh client
 })
 
 -- Local table to store each player's coin count

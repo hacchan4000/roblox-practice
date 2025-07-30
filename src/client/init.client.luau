@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 -- Packages
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -49,12 +50,13 @@ KnitClient.Start()
 		local HUD = require(ReplicatedStorage.Shared.Roact.Applications.HUD.Application)
 
 		local app = Roact.createElement(RoactRodux.StoreProvider, {
-			store = Store,
+		   store = Store,
 		}, {
-			HUD = Roact.createElement(HUD),
+		   HUD = Roact.createElement(HUD),
 		})
-
+		
 		Roact.mount(app, Players.LocalPlayer:WaitForChild("PlayerGui"), "HUD")
+		
 		print("✅ Roact UI Mounted Successfully")
 
 		-- ✅ Cleanup custom loading screen

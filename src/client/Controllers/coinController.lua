@@ -1,7 +1,7 @@
 -- src/Client/Controllers/CoinController.lua
 
 -- Knit setup
-local Players = game:GetService("Players")
+local Players = game:GetService("Players") 
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

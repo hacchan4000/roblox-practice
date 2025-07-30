@@ -1,3 +1,4 @@
+-- ✅ init.client.luau
 print("✅ init.client running")
 game:GetService("ReplicatedFirst"):RemoveDefaultLoadingScreen()
 
@@ -6,17 +7,17 @@ GuiService.AutoSelectGuiEnabled = true
 GuiService.GuiNavigationEnabled = true
 
 -- Game Services
-local Players = game:GetService("Players")
 local StarterPlayer = game:GetService("StarterPlayer")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 
 -- Packages
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local KnitClient = require(Packages.Knit)
 local Roact = require(Packages.Roact)
-local RoduxHooks = require(Packages.Roduxhooks)
+local RoactRodux = require(Packages.RoactRodux)
 
 -- ✅ Load Controllers from the Controllers folder
 KnitClient.AddControllers(script.Parent:WaitForChild("Controllers"))
@@ -40,19 +41,21 @@ KnitClient.Start()
 
 		-- ✅ Synchronization module
 		local Sync = require(StarterPlayer.StarterPlayerScripts.Modules.Synchronization)
-
-		print("✅ Mounting Roact UI")
 		Sync()
 
-		Roact.mount(
-			Roact.createElement(RoduxHooks.Provider, {
-				store = Store,
-			}, {
-				GameScreenGui = Roact.createElement(Root.Game),
-			}),
-			Players.LocalPlayer:WaitForChild("PlayerGui"),
-			"UI"
-		)
+		print("✅ Mounting Roact UI")
+
+		-- Wrap HUD with StoreProvider
+		local HUD = require(ReplicatedStorage.Shared.Roact.Applications.HUD.Application)
+
+		local app = Roact.createElement(RoactRodux.StoreProvider, {
+			store = Store,
+		}, {
+			HUD = Roact.createElement(HUD),
+		})
+
+		Roact.mount(app, Players.LocalPlayer:WaitForChild("PlayerGui"), "HUD")
+		print("✅ Roact UI Mounted Successfully")
 
 		-- ✅ Cleanup custom loading screen
 		local success, result = pcall(function()
@@ -61,7 +64,7 @@ KnitClient.Start()
 
 		if success and result and typeof(result) == "table" and typeof(result.Cleanup) == "function" then
 			result.Cleanup()
-			print("🧹 Custom loading screen removed!")
+			print("🩹 Custom loading screen removed!")
 		else
 			warn("⚠️ Could not cleanup loading screen properly")
 		end

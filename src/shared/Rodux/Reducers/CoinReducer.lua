@@ -1,22 +1,27 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Rodux = require(ReplicatedStorage.Packages.Rodux)
-
-local coinAction = Rodux.createReducer({
+local initialState = {
     coins = 0,
-}, {
-    addCoins = function(state, action)
-        local newState = table.clone(state)
-        newState.coins = newState.coins + action.amount
-        return newState
-    end,
-    removeCoins = function(state, action)
-        local newState = table.clone(state)
-        newState.coins = math.max(0, newState.coins - action.amount)
-        return newState
-    end,
-    setCoins = function(state, action)
-        local newState = table.clone(state)
-        newState.coins = action.amount
-        return newState
-    end,
-    })
+}
+
+local function CoinReducer(state, action)
+    state = state or initialState
+
+    if action.type == "SetCoins" then
+        return {
+            coins = action.payload
+        }
+
+    elseif action.type == "AddCoins" then
+        return {
+            coins = state.coins + action.payload
+        }
+
+    elseif action.type == "SubtractCoins" then
+        return {
+            coins = math.max(0, state.coins - action.payload)
+        }
+    end
+
+    return state
+end
+
+return CoinReducer

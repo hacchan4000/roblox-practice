@@ -1,36 +1,43 @@
 -- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterPlayer = game:GetService("StarterPlayer")
-
-local Actions = StarterPlayer.StarterPlayerScripts.Client.Rodux.Actions
-local CoinActions = require(Actions.CoinActions)
-
-local DataService = require(ReplicatedStorage.Shared.Services.DataService)
-
--- Directories
-local Reducers = ReplicatedStorage.Shared.Rodux.Reducers
-
-local TemplateReducer = require(Reducers.TemplateReducer)
 
 -- Modules
 local Rodux = require(ReplicatedStorage.Packages.Rodux)
 
--- Store
+-- Directories
+local Actions = ReplicatedStorage.Shared.Rodux.Actions
+local Reducers = ReplicatedStorage.Shared.Rodux.Reducers
+
+-- Action Modules
+local CoinActions = require(Actions.CoinActions)
+
+-- Reducers
+local CoinReducer = require(Reducers.CoinReducer)
+local TemplateReducer = require(Reducers.TemplateReducer)
+
+-- Combine Reducers
 local StoreReducer = Rodux.combineReducers({
+	CoinReducer = CoinReducer,
 	TemplateReducer = TemplateReducer,
 })
 
-local coinReducer = require(Reducers.CoinReducer)
+-- Create Store
+local Store = Rodux.Store.new(StoreReducer)
 
-local Store = require(StarterPlayer.StarterPlayerScripts.Client.Rodux.Store)
+-- Initial Dispatch
 Store:dispatch(CoinActions.setCoins(0))
 
-local CoinReducer = RoduxHooks.useSelector(hooks, function(state)
-		return state.CoinReducer
+-- Optional: Sync DataService with Store
+local Knit = require(ReplicatedStorage.Packages.Knit)
+
+local DataService
+Knit.OnStart():andThen(function()
+	DataService = Knit.GetService("DataService")
+
+	DataService:GetData():andThen(function(data)
+		Store:dispatch(CoinActions.setCoins(data.Coins))
+	end)
 end)
 
-DataService:GetData():andThen(function(data)
-		Store:dispatch(CoinActions.setCoins(data.Coins)) 
-end)
 
 return Store

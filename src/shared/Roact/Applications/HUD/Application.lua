@@ -1,60 +1,60 @@
---file ini untuk menampilkan HUD (Heads-Up Display) di game Roblox
---Ini menggunakan Roact untuk membuat antarmuka pengguna yang responsif
--- disini tempat Frame utama dan elemen UI lainnya didefinisikan 
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Roact = require(ReplicatedStorage.Packages.Roact)
-local CoinReducer = require(ReplicatedStorage.Shared.Rodux.Reducers.CoinReducer)
+local Players = game:GetService("Players")
 
-local styles, api = roactSpring.useSpring(hooks, function()
+-- Roact and dependencies
+local Roact = require(ReplicatedStorage.Packages.Roact)
+local Hooks = require(ReplicatedStorage.Packages.Hooks)
+local RoactSpring = require(ReplicatedStorage.Packages._Index["chriscerie_roact-spring@1.1.6"]["roact-spring"])
+
+-- Hooked HUD component
+local function HUD(_, hooks)
+	local useState = hooks.useState
+	local useEffect = hooks.useEffect
+	local useSpring = RoactSpring.useSpring
+
+	local coins, setCoins = useState(0) -- ✅ Use normal variable assignment
+	local player = Players.LocalPlayer
+
+	-- Roact Spring animated value
+	local styles, api = useSpring(hooks, function()
 		return {
-			nbToDisplay = CoinReducer.Coins,
+			nbToDisplay = coins,
+			config = { tension = 170, friction = 26 },
 		}
 	end)
 
-hooks.useEffect(function()
-		api.start({
-			nbToDisplay = CoinReducer.Coins,
-		})
-	end, { CoinReducer.Coins })
-	
-local function HUD(_, hooks)
-	local useState = hooks.useState
+	useEffect(function()
+		api.start({ nbToDisplay = coins })
+	end, { coins })
 
-	-- Get local player
-	local player = game:GetService("Players").LocalPlayer
-
-	-- Coin state
-	local coins, setCoins = useState(0)
-
-	-- Listen for coin updates
-	hooks.useEffect(function()
+	useEffect(function()
 		local leaderstats = player:FindFirstChild("leaderstats")
 		local coinValue
 
-		if not leaderstats then
-			local connection
-			connection = player.ChildAdded:Connect(function(child)
-				if child.Name == "leaderstats" then
-					leaderstats = child
-					connection:Disconnect()
-					coinValue = leaderstats:WaitForChild("Coins", 5)
-					if coinValue then
-						setCoins(coinValue.Value)
-						coinValue:GetPropertyChangedSignal("Value"):Connect(function()
-							setCoins(coinValue.Value)
-						end)
-					end
-				end
+		local function bindCoinValue(val)
+			setCoins(val.Value)
+			val:GetPropertyChangedSignal("Value"):Connect(function()
+				setCoins(val.Value)
 			end)
-		else
+		end
+
+		if leaderstats then
 			coinValue = leaderstats:FindFirstChild("Coins")
 			if coinValue then
-				setCoins(coinValue.Value)
-				coinValue:GetPropertyChangedSignal("Value"):Connect(function()
-					setCoins(coinValue.Value)
-				end)
+				bindCoinValue(coinValue)
 			end
+		else
+			local conn
+			conn = player.ChildAdded:Connect(function(child)
+				if child.Name == "leaderstats" then
+					leaderstats = child
+					coinValue = leaderstats:WaitForChild("Coins", 5)
+					if coinValue then
+						bindCoinValue(coinValue)
+					end
+					conn:Disconnect()
+				end
+			end)
 		end
 
 		return function() end
@@ -64,26 +64,22 @@ local function HUD(_, hooks)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
+		BackgroundTransparency = 0,
 	}, {
-		
-		-- Top Coin Counter
 		CoinCounter = Roact.createElement("TextLabel", {
-			
 			AnchorPoint = Vector2.new(0.5, 0),
-			BackgroundTransparency = 1,
+			BackgroundTransparency = 0,
 			Position = UDim2.fromScale(0.5, 0.05),
 			Size = UDim2.fromScale(0.8, 0.1),
-			Text = styles.nbToDisplay:map(function(nbToDisplay)
-								return math.floor(nbToDisplay)
-							end),
+			Text = styles.nbToDisplay:map(function(val)
+				return "💰 Coins: " .. math.floor(val)
+			end),
 			TextColor3 = Color3.fromRGB(255, 255, 0),
 			TextScaled = true,
 			Font = Enum.Font.GothamBold,
 			ZIndex = 1,
 		}),
 
-		-- Bottom Button (Optional)
 		BottomFrame = Roact.createElement("Frame", {
 			AnchorPoint = Vector2.new(0.5, 1),
 			BackgroundTransparency = 1,
@@ -124,5 +120,4 @@ end
 
 
 
-HUD = RoactHooks.new(Roact)(HUD)
-return HUD
+return Hooks.new(Roact)(HUD)

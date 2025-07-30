@@ -103,7 +103,6 @@ local function spawnCoin(template, areaPart)
 	local basePart = areaPart:FindFirstChildWhichIsA("BasePart")
 
 	if not basePart then
-		warn("🚫 No BasePart found inside spawn area model:", areaPart.Name)
 		return
 	end
 

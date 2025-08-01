@@ -19,6 +19,8 @@ local DataService = Knit.CreateService({
 	Client = {
 		DataChanged = Knit.CreateSignal(),
 		GetData = Knit.CreateSignal(),
+		CoinsUpdated = Knit.CreateSignal(),
+		
 	},
 
 	Profiles = {},

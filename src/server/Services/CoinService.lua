@@ -1,29 +1,52 @@
 -- Roblox Services
 local Players = game:GetService("Players")
-local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Knit Service
+-- Knit & Services
+local Knit = require(ReplicatedStorage.Packages.Knit)
+local DataService = require(script.Parent.DataService)
+
+-- CoinService
 local CoinService = Knit.CreateService({
-	Name = "CoinService", --nama dari service ini yang akan digunakan di server dan client
-	Client = {}, --tabel yang berisi fungsi yang dapat diakses oleh client
+	Name = "CoinService",
+	Client = {
+		CoinsUpdated = Knit.CreateSignal(),
+	},
 })
 
--- Local table to store each player's coin count
+-- Internal coin tracking
 local playerCoins = {}
 
--- Client-accessible method to get their coin count
+-- Client method: get coin count
 function CoinService.Client:GetCoins(player)
 	return playerCoins[player] or 0
 end
 
--- Server method to add coins
-function CoinService:AddCoins(player, amount)
+-- Server method: add coins, account for gamepass
+function CoinService:AddCoins(player, baseAmount)
+	local data = DataService:GetData(player)
+	local amount = baseAmount
+
+	if data and table.find(data.Gamepasses, "x2 Coins") then
+		amount *= 2
+	end
+
 	playerCoins[player] = (playerCoins[player] or 0) + amount
 	print("💰", player.Name, "now has", playerCoins[player], "coins")
+
+	-- Update leaderstats
+	local stats = player:FindFirstChild("leaderstats")
+	if stats and stats:FindFirstChild("Coins") then
+		stats.Coins.Value += amount
+	end
+
+	-- Fire client signal
+	self.Client.CoinsUpdated:Fire(player, playerCoins[player])
 end
 
-local TweenService = game:GetService("TweenService")
-
+-- Tween spinning animation
 local function spinCoin(coin)
 	local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
 	local goal = { Orientation = coin.Orientation + Vector3.new(0, 360, 0) }
@@ -31,39 +54,49 @@ local function spinCoin(coin)
 	tween:Play()
 end
 
--- Detect coin collection on server
-local function detectCollection(coin)
-	local touchPart = coin:IsA("Model") and coin.PrimaryPart or coin
+-- Play collection sound
+local function playSound(coin)
+	local sound = coin:FindFirstChild("CoinSound")
+	if sound then
+		local clone = sound:Clone()
+		clone.Parent = Workspace
+		clone:Play()
+		clone.Ended:Connect(function() clone:Destroy() end)
+	end
+end
 
-	if not touchPart then return end
+-- Collection logic (server-side, touch-based)
+function CoinService:_setupTouchCollect(coin)
+	local part = coin:IsA("Model") and coin.PrimaryPart or coin
+	if not part then warn("Coin has no valid touchable part") return end
 
-	touchPart.Touched:Connect(function(hit)
+	part.Touched:Connect(function(hit)
 		local character = hit.Parent
-		local player = character and Players:GetPlayerFromCharacter(character)
+		local player = Players:GetPlayerFromCharacter(character or hit)
 
-		if player and player:FindFirstChild("Humanoid") then
-			local reward = coin:FindFirstChild("Reward")
-			if reward then
-				local value = reward.Value or 1
-				CoinService:AddCoins(player, value)
+		if not (player and character and character:FindFirstChild("Humanoid")) then return end
 
-				-- Sync to leaderstats
-				local stats = player:FindFirstChild("leaderstats")
-				if stats and stats:FindFirstChild("Coins") then
-					stats.Coins.Value += value
-				end
+		if coin:GetAttribute("Collected") then return end
+		coin:SetAttribute("Collected", true)
 
-				print("✅ Coin collected by", player.Name, "worth", value)
-				coin:Destroy()
-			end
+		local reward = coin:FindFirstChild("Reward")
+		if not reward or not reward:IsA("IntValue") then
+			warn("🚫 No valid Reward inside coin")
+			return
 		end
+
+		local value = reward.Value
+		self:AddCoins(player, value)
+		playSound(coin)
+
+		print("✅", player.Name, "collected", value, "coins!")
+		coin:Destroy()
 	end)
 end
 
-
+-- Coin spawner in a given area
 function CoinService:SpawnCoin(areaPart)
-	local coinTemplate = game.ReplicatedStorage:WaitForChild("Coin")
-
+	local coinTemplate = ReplicatedStorage:WaitForChild("Coin")
 	local newCoin = coinTemplate:Clone()
 	newCoin.Name = "Coin"
 
@@ -74,21 +107,20 @@ function CoinService:SpawnCoin(areaPart)
 	local randomPos = basePart.Position + Vector3.new(math.random(-halfX, halfX), 2, math.random(-halfZ, halfZ))
 
 	if newCoin:IsA("Model") then
-		if not newCoin.PrimaryPart then warn("No PrimaryPart on coin model") return end
+		if not newCoin.PrimaryPart then warn("No PrimaryPart in coin model") return end
 		newCoin:SetPrimaryPartCFrame(CFrame.new(randomPos))
+		newCoin.PrimaryPart.Anchored = true
 	else
 		newCoin.Position = randomPos
+		newCoin.Anchored = true
 	end
 
-	newCoin.Parent = workspace:WaitForChild("Coins")
-
+	newCoin.Parent = Workspace:FindFirstChild("Coins") or Workspace
 	spinCoin(newCoin)
-	detectCollection(newCoin)
-	
+	self:_setupTouchCollect(newCoin)
 end
 
-
--- Server-side, maybe in PlayerAdded or CoinService
+-- Player setup (leaderstats init)
 local function onPlayerAdded(player)
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
@@ -100,32 +132,28 @@ local function onPlayerAdded(player)
 	coins.Parent = leaderstats
 end
 
-game.Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerAdded:Connect(onPlayerAdded)
 
-
--- Server method to get coins (non-client)
+-- Optional getter
 function CoinService:GetCoins(player)
 	return playerCoins[player] or 0
 end
 
--- Knit Signal to notify clients of coin updates
-function CoinService:CoinsUpdated(player)
-    
-end
-
--- KnitStart: Setup player listeners
+-- Knit lifecycle start
 function CoinService:KnitStart()
 	print("🟢 CoinService started")
 
+	-- Ensure Coins folder exists
 	local coinFolder = Instance.new("Folder")
 	coinFolder.Name = "Coins"
-	coinFolder.Parent = workspace
+	coinFolder.Parent = Workspace
 
-	local spawnFolder = workspace:FindFirstChild("CoinSpawns")
+	-- Start spawn loop
+	local spawnFolder = Workspace:FindFirstChild("CoinSpawns")
 	if not spawnFolder then warn("⚠️ No CoinSpawns folder") return end
 
 	local spawnAreas = spawnFolder:GetChildren()
-	if #spawnAreas == 0 then warn("⚠️ No spawn areas inside CoinSpawns") return end
+	if #spawnAreas == 0 then warn("⚠️ No spawn areas") return end
 
 	task.spawn(function()
 		for i = 1, 21 do
@@ -136,7 +164,5 @@ function CoinService:KnitStart()
 		end
 	end)
 end
-
-
 
 return CoinService

@@ -1,5 +1,3 @@
--- /src/shared/Roact/Applications/HUD/Application.lua
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
@@ -7,6 +5,8 @@ local Roact = require(ReplicatedStorage.Packages.Roact)
 local Hooks = require(ReplicatedStorage.Packages.Hooks)
 local RoactRodux = require(ReplicatedStorage.Packages.RoactRodux)
 local RoactSpring = require(ReplicatedStorage.Packages._Index["chriscerie_roact-spring@1.1.6"]["roact-spring"])
+local MonetizationController = require(script.Parent.Parent.Controllers.MonetizationController)
+
 
 -- Hook component
 local function HUDView(_, hooks)
@@ -77,8 +77,18 @@ local function HUDView(_, hooks)
 			TextColor3 = Color3.fromRGB(251, 251, 251),
 			TextScaled = true,
 			Font = Enum.Font.GothamBold,
-
 			ZIndex = 1,
+		}),
+
+		BuyButton = Roact.createElement("ImageButton", {
+			Image = "rbxassetid://107730284480326", -- ✅ Replace with actual ID
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.fromScale(0.95, 0.1),
+			Size = UDim2.fromScale(0.08, 0.08),
+			BackgroundTransparency = 1,
+			[Roact.Event.MouseButton1Click] = function()
+				MonetizationController:BuyItem("x2 Coins")
+			end,
 		}),
 	})
 end

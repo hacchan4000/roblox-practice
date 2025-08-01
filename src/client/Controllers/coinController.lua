@@ -71,6 +71,10 @@ local function spinCoin(coin)
 	local tween = TweenService:Create(coin, tweenInfo, goal)
 	tween:Play()
 end
+CoinService.CoinsUpdated:Connect(function(amount)
+	print("💰 Coins updated! New amount:", amount)
+	-- You can update UI or play sound here
+end)
 
 -- Spawn a coin inside a spawn area
 local function spawnCoin(template, areaPart)

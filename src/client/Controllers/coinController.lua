@@ -142,7 +142,7 @@ function CoinController:KnitStart()
 		return
 	end
 
-	task.spawn(function()
+--[[task.spawn(function()
 		for i = 0, 21, 1 do
 			task.wait(2)
 			for _, areaSpawn in ipairs(spawnAreas) do
@@ -151,7 +151,7 @@ function CoinController:KnitStart()
 			end
 		end
 		print("✅ Finished spawning coins")
-	end)
+	end)]]
 end
 
 print("📦 CoinController loaded by Knit")
